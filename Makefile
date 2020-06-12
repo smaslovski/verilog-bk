@@ -13,4 +13,4 @@ clean:
 $(PROGRAM): $(MODULES)
 	$(VERILOG) -o $(PROGRAM) $(MODULES)
 
-.PHONY: all run clean
+.PHONY: clean
