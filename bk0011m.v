@@ -26,12 +26,12 @@ assign nWRTBT = nWTBT;
 // тактовый генератор
 initial begin
     cnt = 0;
-    clk <= 1;
+    clk = 1;
     forever begin
 	#(cycle/4)
-	clk <= 0;
+	clk = 0;
 	#(cycle/2);
-	clk <= 1;
+	clk = 1;
 	#(cycle/4);
 	++cnt;
     end
