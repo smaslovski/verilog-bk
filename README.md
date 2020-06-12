@@ -1,7 +1,7 @@
 # verilog-bk
 Small project to emulate a few behavioral aspects of the 1801BM1 CPU and the Soviet computers BK-0010/0011M.
 
-This is a small and lightweigth Verilog-based project that emulates some behavioral aspects
+This is a small and lightweight Verilog-based project that emulates some behavioral aspects
 of the 1801BM1 CPU and the components found on the PCB of "БК-0011М" (BK-0011M) computer.
 BK-0011M was a popular PDP-compatible 16-bit home computer produced in the U.S.S.R. in 1980s.
 
