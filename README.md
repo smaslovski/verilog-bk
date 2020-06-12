@@ -11,7 +11,7 @@ and the only extensions being tested are 3 variants of AY-3-8910/YM2149 interfac
 
 Yes, I am well aware of the great projects put forward by Viacheslav (Slava) 1801BM1
 (https://github.com/1801BM1/cpu11) and by lvd2 (https://github.com/lvd2/ay-3-8910_reverse_engineered),
-but my point here is not to reinvent the weel: it is just to have fun!
+but my point here is not to reinvent the wheel: it is just to have fun!
 
 It is possible that some of the modules from this project could be later included in other
 projects that deal with emulation of old computers (both in software and in hardware).
