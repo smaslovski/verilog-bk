@@ -13,7 +13,7 @@ wave: $(WAVEFORMS)
 	gtkwave $(WAVEFORMS)
 
 clean:
-	rm -f $(PROGRAM) cpu_bus.log cpu_emulator.vcd
+	rm -f $(PROGRAM) $(LOGS) $(WAVEFORMS)
 
 $(WAVEFORMS): $(MODULES)
 	$(VERILOG) -DGTKWAVE_DUMP -o $(PROGRAM) $(MODULES)
