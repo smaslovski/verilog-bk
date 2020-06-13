@@ -66,57 +66,55 @@ task write_cycle(
 		data_en = 1;
 	    end
 	7:		// выдача реальных дaнных
-	    begin
 		nAD[15:0] = ~data_reg;
-	    end
 	8:		// запись байта/слова
 	    begin
 		nWTBT = byte;
 		nDOUT = 0;
 	    end
 	8'b00zzzzz1:	// ожидание ответа (1й такт)
-		if ( ~nRPLYp )
-			state[6] = 1;
+	    if ( ~nRPLYp )
+		state[6] = 1;
 	8'b01zzzzz1:	// ожидание ответа (2й такт)
-		if ( ~nRPLYp )
-		    begin
-			state = 8'b10000000;
-			nDOUT = 1;
-		    end
-		else
-			state[6] = 0;
+	    if ( ~nRPLYp )
+		begin
+		    state = 8'b10000000;
+		    nDOUT = 1;
+		end
+	    else
+		state[6] = 0;
 	8'b10000001:	// освобождение шины
-		begin
-		    data_en = 0;
-		    nWTBT   = 1;
-		end
+	    begin
+		data_en = 0;
+		nWTBT   = 1;
+	    end
 	8'b100zzzz0:	// ожидание окончания ответа (1й полутакт)
-		if ( nRPLYp )
-			state[5] = 1;
+	    if ( nRPLYp )
+		state[5] = 1;
 	8'b101zzzz1:	// ожидание окончания ответа (2й полутакт)
-		if ( nRPLYp )
-		    begin
-			state[6] = 1;
-			state[5:0] = 0;
-			ctrl_en = 0;
-		    end
-		else
-		    state[5] = 0;
+	    if ( nRPLYp )
+		begin
+		    state[6] = 1;
+		    state[5:0] = 0;
+		    ctrl_en = 0;
+		end
+	    else
+		state[5] = 0;
 	8'b11000010:	// снятие nBSY и nSYNC
-		begin
-		    nBSY  = 1'bz;
-		    nSYNC = 1;
-		end
+	    begin
+		nBSY  = 1'bz;
+		nSYNC = 1;
+	    end
 	8'b11000100:	// конец транзакции
-		begin
-		    nSYNC = 1'bz;
-		    run = 0;
-		end
+	    begin
+		nSYNC = 1'bz;
+		run = 0;
+	    end
 	endcase
 	if ( ~state[7] )
-		++state[5:0];
+	    ++state[5:0];
 	else
-		++state[4:0];
+	    ++state[4:0];
     end
 endtask
 
@@ -168,6 +166,12 @@ always @(CLKp)
 		write_cycle(state_reg, 1, run_ww);
 integer mcd;
 
+`ifdef GTKWAVE_DUMP
+initial begin
+	$dumpfile("cpu_emulator.vcd");
+	$dumpvars(0,cpu_emulator);
+end
+`else
 initial begin
 	mcd = $fopen("cpu_bus.log");
 	$fdisplay(mcd, "time\tstate\tCLKp\tnBSYp\tnADp\t\t\tnSYNCp\tnWTBTp\tnDINp\tnDOUTp\tnRPLYp\tnSEL1p\tnSEL2p");
@@ -175,5 +179,5 @@ end
 
 always @(*)
 	$fdisplay(mcd, "%5t\t%4x\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b", $time, state_reg, CLKp, nBSYp, nADp, nSYNCp, nWTBTp, nDINp, nDOUTp, nRPLYp, nSEL1p, nSEL2p);
-
+`endif
 endmodule
