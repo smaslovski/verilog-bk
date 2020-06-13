@@ -39,7 +39,7 @@ task write_cycle(
 		inout run);
     begin
     	casez ( state )
-	0:		// таймаут шины, рестарт
+	0, 8'b01000000:	// таймаут шины, рестарт
 	    begin
 		ctrl_en = 0;
 		data_en = 0;
