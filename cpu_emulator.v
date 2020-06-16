@@ -31,11 +31,13 @@ assign nSYNCp = nSYNC;
 assign nSEL1p = nSEL1;
 assign nSEL2p = nSEL2;
 
-// Автомат машинного цикла записи
+// Автомат, реализующий машинные циклы чтения и записи
 
-task write_cycle(
+task bus_cycle(
 		inout [7:0] state,
 		input byte,
+		input rd,
+		input wr,
 		inout run);
     begin
     	casez ( state )
@@ -45,11 +47,13 @@ task write_cycle(
 		data_en = 0;
 		addr_en = 0;
 		nSYNC = 1'bz;
+		if ( CLKp ) // по фронту CLK пропускаем полутакт для синхронизации (строго говоря, для шины это не требуется)
+		    state = 1;
 	    end
 	2:		// захват шины и выдача адреса
 	    begin
 		nBSY  = 0;
-		nWTBT = 0;
+		nWTBT = ~(wr & ~rd); // активен только в цикле записи
 		nDIN  = 1;
 		nDOUT = 1;
 		nAD[15:0] = ~addr_reg;
@@ -61,15 +65,19 @@ task write_cycle(
 	5:		// окончание выдачи адреса
 	    begin
 		nWTBT = 1;
-		nAD[15:0] = 16'bx;  // мусор из внутреннего регистра данных
+		nDIN = ~rd;
+		if ( wr )
+		    nAD[15:0] = 16'bx;  // мусор из внутреннего регистра данных, только при записи
 		addr_en = 0;
-		data_en = 1;
+		data_en = wr; // при чтении на AD третье состояние
+		if ( rd )
+		    state = 8; // при чтении переходим к ожиданию RPLY
 	    end
-	7:		// выдача реальных дaнных
+	7:		// выдача дaнных при записи
 		nAD[15:0] = ~data_reg;
 	8:		// запись байта/слова
 	    begin
-		nWTBT = byte;
+		nWTBT = ~byte;
 		nDOUT = 0;
 	    end
 	8'b00zzzzz1:	// ожидание ответа (1й такт)
@@ -77,13 +85,25 @@ task write_cycle(
 		state[6] = 1;
 	8'b01zzzzz1:	// ожидание ответа (2й такт)
 	    if ( ~nRPLYp )
-		begin
+		begin	// ответ получен
 		    state = 8'b10000000;
+		    nDIN  = 1;
 		    nDOUT = 1;
+		    if ( rd )	// чтение данных с шины
+		    begin
+			if ( byte )
+			    begin
+				data_reg[7:0]  = addr_reg[0] ? ~nADp[15:8] : ~nADp[7:0];
+				data_reg[15:8] = 8'b0;
+			    end
+			else
+			    data_reg = ~nADp[15:0];
+			state = 8'b10000001; // переход к ожиданию окончания RPLY
+		    end
 		end
 	    else
 		state[6] = 0;
-	8'b10000001:	// освобождение шины
+	8'b10000001:	// освобождение шины при записи
 	    begin
 		data_en = 0;
 		nWTBT   = 1;
@@ -137,33 +157,52 @@ always @(posedge nSYNCp)
 assign nRPLYp = nSEL1p | (nDIN & nDOUT);
 assign nRPLYp = nSEL2p | (nDIN & nDOUT);
 
-reg run_ww, run_wb;
+reg run_ww, run_wb, run_rb, run_rw;
 
 // асинхронная программа для эмулятора ЦПУ
 initial begin
 	run_ww = 0;
 	run_wb = 0;
-	#(50*dT)
+	run_rb = 0;
+	run_rw = 0;
+	#(5*dT)
 	state_reg = 0;
 	data_reg = ~16'h0055;
 	run_wb = 1;
-	#(100*dT)
+	#(30*dT)
 	state_reg = 0;
 	data_reg = ~16'h000f;
 	run_ww = 1;
-	#(100*dT)
+	#(30*dT)
+	state_reg = 0;
+	run_rb = 1;
+	#(30*dT)
+	state_reg = 0;
+	run_rw = 1;
+	#(30*dT)
 	simulation_end = 1;
 end
 
 // цикл записи байта
 always @(CLKp)
 	if (run_wb)
-		write_cycle(state_reg, 0, run_wb);
+		bus_cycle(state_reg, 1, 0, 1, run_wb);
 
 // цикл записи слова
 always @(CLKp)
 	if (run_ww)
-		write_cycle(state_reg, 1, run_ww);
+		bus_cycle(state_reg, 0, 0, 1, run_ww);
+
+// цикл чтения байта
+always @(CLKp)
+	if (run_rb)
+		bus_cycle(state_reg, 1, 1, 0, run_rb);
+
+// цикл чтения слова
+always @(CLKp)
+	if (run_rw)
+		bus_cycle(state_reg, 0, 1, 0, run_rw);
+
 integer mcd;
 
 `ifdef GTKWAVE_DUMP
@@ -174,10 +213,10 @@ end
 `else
 initial begin
 	mcd = $fopen("cpu_bus.log");
-	$fdisplay(mcd, "time\tstate\tCLKp\tnBSYp\tnADp\t\t\tnSYNCp\tnWTBTp\tnDINp\tnDOUTp\tnRPLYp\tnSEL1p\tnSEL2p");
+	$fdisplay(mcd, "time\tCLKp\tnBSYp\tnADp\t\t\tnSYNCp\tnWTBTp\tnDINp\tnDOUTp\tnRPLYp\tnSEL1p\tnSEL2p\tstate\taddr\tdata");
 end
 
 always @(*)
-	$fdisplay(mcd, "%5t\t%4x\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b", $time, state_reg, CLKp, nBSYp, nADp, nSYNCp, nWTBTp, nDINp, nDOUTp, nRPLYp, nSEL1p, nSEL2p);
+	$fstrobe(mcd, "%6t\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%b\t%4x\t%4x\t%4x", $time, CLKp, nBSYp, nADp, nSYNCp, nWTBTp, nDINp, nDOUTp, nRPLYp, nSEL1p, nSEL2p, state_reg, addr_reg, data_reg);
 `endif
 endmodule
