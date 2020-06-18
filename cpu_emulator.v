@@ -17,7 +17,7 @@ output simulation_end;
 reg [15:0] nAD;
 reg nBSY = 1'bz, nSYNC = 1'bz, nWTBT = 1'bz, nDIN = 1'bz, nDOUT = 1'bz, nSEL1 = 1, nSEL2 = 1;
 
-reg [7:0] state_reg = 0;
+reg [3:0] state_reg = 0;
 reg [15:0] addr_reg = 16'o177714, data_reg;
 reg addr_en = 0, data_en = 0, ctrl_en = 0, simulation_end = 0;
 
@@ -31,112 +31,178 @@ assign nSYNCp = nSYNC;
 assign nSEL1p = nSEL1;
 assign nSEL2p = nSEL2;
 
-// Автомат, реализующий машинные циклы чтения и записи
+// Двухфазный автомат, реализующий машинные циклы чтения, записи и чтения-модификации-записи
 
-task bus_cycle(
-		inout [7:0] state,
+// активируется по срезу CLK
+task bus_cycle(	inout [3:0] state,
 		input byte,
 		input rd,
 		input wr,
 		inout run);
     begin
-    	casez ( state )
-	0, 8'b01000000:	// таймаут шины, рестарт
-	    begin
-		ctrl_en = 0;
-		data_en = 0;
-		addr_en = 0;
-		nSYNC = 1'bz;
-		if ( CLKp ) // по фронту CLK пропускаем полутакт для синхронизации (строго говоря, для шины это не требуется)
-		    state = 1;
-	    end
-	2:		// захват шины и выдача адреса
-	    begin
-		nBSY  = 0;
-		nWTBT = ~(wr & ~rd); // активен только в цикле записи
-		nDIN  = 1;
-		nDOUT = 1;
-		nAD[15:0] = ~addr_reg;
-		ctrl_en = 1;
-		addr_en = 1;
-	    end
-	4:		// начало обмена
-	    nSYNC = 0;
-	5:		// окончание выдачи адреса
-	    begin
-		nWTBT = 1;
-		nDIN = ~rd;
-		if ( wr )
-		    nAD[15:0] = 16'bx;  // мусор из внутреннего регистра данных, только при записи
-		addr_en = 0;
-		data_en = wr; // при чтении на AD третье состояние
-		if ( rd )
-		    state = 8; // при чтении переходим к ожиданию RPLY
-	    end
-	7:		// выдача дaнных при записи
-		nAD[15:0] = ~data_reg;
-	8:		// запись байта/слова
-	    begin
-		nWTBT = ~byte;
-		nDOUT = 0;
-	    end
-	8'b00zzzzz1:	// ожидание ответа (1й такт)
-	    if ( ~nRPLYp )
-		state[6] = 1;
-	8'b01zzzzz1:	// ожидание ответа (2й такт)
-	    if ( ~nRPLYp )
-		begin	// ответ получен
-		    state = 8'b10000000;
-		    nDIN  = 1;
-		    nDOUT = 1;
-		    if ( rd )	// чтение данных с шины
-		    begin
-			if ( byte )
-			    begin
-				data_reg[7:0]  = addr_reg[0] ? ~nADp[15:8] : ~nADp[7:0];
-				data_reg[15:8] = 8'b0;
-			    end
-			else
-			    data_reg = ~nADp[15:0];
-			state = 8'b10000001; // переход к ожиданию окончания RPLY
-		    end
-		end
-	    else
-		state[6] = 0;
-	8'b10000001:	// освобождение шины при записи
-	    begin
-		data_en = 0;
-		nWTBT   = 1;
-	    end
-	8'b100zzzz0:	// ожидание окончания ответа (1й полутакт)
-	    if ( nRPLYp )
-		state[5] = 1;
-	8'b101zzzz1:	// ожидание окончания ответа (2й полутакт)
-	    if ( nRPLYp )
-		begin
-		    state[6] = 1;
-		    state[5:0] = 0;
-		    ctrl_en = 0;
-		end
-	    else
-		state[5] = 0;
-	8'b11000010:	// снятие nBSY и nSYNC
-	    begin
-		nBSY  = 1'bz;
-		nSYNC = 1;
-	    end
-	8'b11000100:	// конец транзакции
-	    begin
-		nSYNC = 1'bz;
+	bus_ctrl_phase_0(state, byte, rd, wr);
+	bus_fsm_phase_0(state, rd, wr);
+	@(posedge CLKp)
+	bus_ctrl_phase_1(state, byte, rd, wr);
+	bus_fsm_phase_1(state, rd, wr);
+	case ( state )
+	    11:
 		run = 0;
-	    end
 	endcase
-	if ( ~state[7] )
-	    ++state[5:0];
-	else
-	    ++state[4:0];
     end
 endtask
+
+// активируется по срезу CLK
+task bus_ctrl_phase_0(
+		inout [3:0] state,
+		input byte,
+		input rd,
+		input wr);
+    case ( state )
+	0:	// таймаут шины, рестарт
+	    begin
+		ctrl_en <= 0;
+		data_en <= 0;
+		addr_en <= 0;
+		rply_timer_en  <= 0;
+		rply_timer_cnt <= 0;
+		nSYNC <= 1'bz;
+	    end
+	1:	// захват шины и выдача адреса
+	    begin
+		nBSY  <= 0;
+		nWTBT <= ~(wr & ~rd); // активен только в цикле записи
+		nDIN  <= 1;
+		nDOUT <= 1;
+		nAD[15:0] <= ~addr_reg;
+		ctrl_en <= 1;
+		addr_en <= 1;
+	    end
+	2:	// начало обмена
+	    nSYNC <= 0;
+	4:	// запрос на запись байта/слова, начало ожидания RPLY
+	    if (wr && ~rd)
+		begin
+		    nWTBT <= ~byte;
+		    nDOUT <= 0;
+		end
+	6:	// освобождение шины AD и деактивация nWTBT
+	    begin
+		data_en <= 0;
+		nWTBT   <= 1;
+	    end
+	7:	// окончание RPLY
+	    if ( nRPLYp )
+		ctrl_en <= 0;
+	9:	// снятие nBSY и nSYNC
+	    begin
+		nBSY  <= 1'bz;
+		nSYNC <= 1;
+	    end
+	10:	// конец транзакции
+	    nSYNC <= 1'bz;
+    endcase
+endtask
+
+// активируется по фронту CLK
+task bus_ctrl_phase_1(
+		inout [3:0] state,
+		input byte,
+		input rd,
+		input wr);
+    case ( state )
+	2:	// окончание выдачи адреса
+	    begin
+		nWTBT <= 1;
+		nDIN  <= ~rd;
+		if ( wr )
+		    nAD[15:0] <= 16'bx;  // мусор из внутреннего регистра данных, только при записи
+		addr_en <= 0;
+		data_en <= wr & ~rd; // при чтении на AD третье состояние
+	    end
+	3:	// выдача дaнных при записи (при чтении пропускается)
+	    nAD[15:0] <= ~data_reg;
+	5:	// завершение записи / чтения
+	    if ( ~nRPLYp )
+		begin
+		    nDIN  <= 1;
+		    nDOUT <= 1;
+		    if ( rd )	// фиксация данных с шины AD
+			begin
+			    if ( byte )
+				begin
+				    data_reg[7:0]  <= addr_reg[0] ? ~nADp[15:8] : ~nADp[7:0];
+				    data_reg[15:8] <= 8'b0;
+				end
+			    else
+				data_reg <= ~nADp[15:0];
+			end
+		end
+    endcase
+endtask
+
+// активируется по срезу CLK
+task bus_fsm_phase_0(
+		inout [3:0] state,
+		input rd,
+		input wr);
+    case ( state )
+	4:	// старт таймера RPLY
+		rply_timer_en <= 1;
+	7:	// ожидание окончания RPLY (2й полутакт)
+	    if ( ~nRPLYp)
+		state = state - 1;
+    endcase
+endtask
+
+// активируется по фронту CLK
+task bus_fsm_phase_1(
+		inout [3:0] state,
+		input rd,
+		input wr);
+    case ( state )
+	2:	// при чтении переходим к ожиданию RPLY
+	    if ( rd )
+		state = 4;
+	    else
+		state = state + 1;
+	4:	// ожидание RPLY (1й такт)
+	    if ( ~nRPLYp )
+		state = state + 1;
+	    else
+		if ( rply_timeout )
+		    state = 0;
+	5:	// ожидание RPLY (2й такт)
+	    if ( ~nRPLYp )
+		begin
+		    // ответ получен, запрещаем и очищаем таймер
+		    rply_timer_en  <= 0;
+		    rply_timer_cnt <= 0;
+		    state = state + 1;
+		end
+	    else
+		state = state - 1;
+	6:	// ожидание окончания RPLY (1й полутакт)
+	    if ( nRPLYp )
+		state = state + 1;
+	default:
+	    state = state + 1;
+    endcase
+endtask
+
+// Делитель частоты СLK на 8 (используется в таймере RPLY)
+reg [2:0] div_cnt = 0;
+wire CLK_div_8 = div_cnt[2];
+always @(posedge CLKp)
+    div_cnt <= div_cnt + 1;
+
+// RPLY таймер
+reg rply_timer_en = 0;
+reg [3:0] rply_timer_cnt = 0;
+wire rply_timeout = rply_timer_cnt[3];
+always @(negedge CLK_div_8)
+    if ( rply_timer_en )
+	rply_timer_cnt <= rply_timer_cnt + 1;
 
 // внутренние формирователи сигналов nSEL1 and nSEL2
 always @(negedge nSYNCp)
@@ -180,28 +246,32 @@ initial begin
 	state_reg = 0;
 	run_rw = 1;
 	#(30*dT)
+	state_reg = 0;
+	addr_reg = ~16'o123456;
+	run_wb = 1;
+	#(200*dT)
 	simulation_end = 1;
 end
 
 // цикл записи байта
-always @(CLKp)
-	if (run_wb)
-		bus_cycle(state_reg, 1, 0, 1, run_wb);
+always @(negedge CLKp)
+    if (run_wb)
+	bus_cycle(state_reg, 1, 0, 1, run_wb);
 
 // цикл записи слова
-always @(CLKp)
-	if (run_ww)
-		bus_cycle(state_reg, 0, 0, 1, run_ww);
+always @(negedge CLKp)
+    if (run_ww)
+	bus_cycle(state_reg, 0, 0, 1, run_ww);
 
 // цикл чтения байта
-always @(CLKp)
-	if (run_rb)
-		bus_cycle(state_reg, 1, 1, 0, run_rb);
+always @(negedge CLKp)
+    if (run_rb)
+	bus_cycle(state_reg, 1, 1, 0, run_rb);
 
 // цикл чтения слова
-always @(CLKp)
-	if (run_rw)
-		bus_cycle(state_reg, 0, 1, 0, run_rw);
+always @(negedge CLKp)
+    if (run_rw)
+	bus_cycle(state_reg, 0, 1, 0, run_rw);
 
 integer mcd;
 
