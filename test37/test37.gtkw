@@ -1,0 +1,47 @@
+[*]
+[*] GTKWave Analyzer v3.3.98 (w)1999-2019 BSI
+[*] Thu Aug  6 07:20:51 2020
+[*]
+[dumpfile] "./test37.lxt"
+[dumpfile_mtime] "Thu Aug  6 07:09:33 2020"
+[dumpfile_size] 824675
+[savefile] "./test37.gtkw"
+[timestart] 0
+[size] 1362 722
+[pos] -1 -1
+*-15.884268 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[sst_width] 221
+[signals_width] 102
+[sst_expanded] 1
+[sst_vpaned_height] 192
+@28
+tb_037.R[0]
+tb_037.C[0]
+tb_037.CLK[0]
+@22
+tb_037.nAD[15:0]
+@28
+tb_037.nSYNC[0]
+tb_037.nDIN[0]
+tb_037.nDOUT[0]
+tb_037.nWTBT[0]
+@22
+tb_037.A[6:0]
+@28
+tb_037.nRAS[0]
+tb_037.nCAS[1:0]
+tb_037.nWE[0]
+tb_037.WTD[0]
+tb_037.WTI[0]
+tb_037.nBS[0]
+tb_037.nE[0]
+tb_037.nRPLY[0]
+@29
+tb_037.nVSYNC[0]
+@28
+tb_037.vR[0]
+tb_037.vG[0]
+tb_037.vB[0]
+tb_037.nIRQ2[0]
+[pattern_trace] 1
+[pattern_trace] 0
