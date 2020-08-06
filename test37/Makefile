@@ -2,6 +2,7 @@ MODULES = tb_037.v va_037.v
 PROGRAM = test37
 VERILOG = iverilog -Wall
 WAVEFORMS = test37.lxt
+GTKWAVEFILE = test37.gtkw
 LOGS=
 
 all: $(PROGRAM)
@@ -10,7 +11,7 @@ run: $(PROGRAM)
 	./$(PROGRAM)
 
 wave: $(WAVEFORMS)
-	gtkwave $(WAVEFORMS)
+	gtkwave $(GTKWAVEFILE)
 
 clean:
 	rm -f $(PROGRAM) $(LOGS) $(WAVEFORMS)
