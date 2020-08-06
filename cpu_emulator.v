@@ -17,7 +17,7 @@ output simulation_end;
 reg [15:0] nAD;
 reg nBSY = 1'bz, nSYNC = 1'bz, nWTBT = 1'bz, nDIN = 1'bz, nDOUT = 1'bz, nSEL1 = 1, nSEL2 = 1;
 
-reg [7:0] state_reg = 0;
+reg [8:0] state_reg = 0;
 reg [15:0] addr_reg = 16'o177714, data_reg;
 reg addr_en = 0, data_en = 0, ctrl_en = 0, simulation_end = 0;
 
@@ -34,19 +34,21 @@ assign nSEL2p = nSEL2;
 // Автомат, реализующий машинные циклы чтения и записи
 
 task bus_cycle(
-		inout [7:0] state,
+		inout [8:0] state,
 		input byte,
 		input rd,
 		input wr,
 		inout run);
     begin
     	casez ( state )
-	0, 8'b01000000:	// таймаут шины, рестарт
+	0, 9'b010000000:// таймаут шины, рестарт
 	    begin
+		nDIN  = 1;
+		nDOUT = 1;
+		nSYNC = 1'bz;
 		ctrl_en = 0;
 		data_en = 0;
 		addr_en = 0;
-		nSYNC = 1'bz;
 		if ( CLKp ) // по фронту CLK пропускаем полутакт для синхронизации (строго говоря, для шины это не требуется)
 		    state = 1;
 	    end
@@ -54,8 +56,6 @@ task bus_cycle(
 	    begin
 		nBSY  = 0;
 		nWTBT = ~(wr & ~rd); // активен только в цикле записи
-		nDIN  = 1;
-		nDOUT = 1;
 		nAD[15:0] = ~addr_reg;
 		ctrl_en = 1;
 		addr_en = 1;
@@ -80,13 +80,13 @@ task bus_cycle(
 		nWTBT = ~byte;
 		nDOUT = 0;
 	    end
-	8'b00zzzzz1:	// ожидание ответа (1й такт)
+	9'b00zzzzzz1:	// ожидание ответа (1й такт)
 	    if ( ~nRPLYp )
-		state[6] = 1;
-	8'b01zzzzz1:	// ожидание ответа (2й такт)
+		state[7] = 1;
+	9'b01zzzzzz1:	// ожидание ответа (2й такт)
 	    if ( ~nRPLYp )
 		begin	// ответ получен
-		    state = 8'b10000000;
+		    state = 9'b100000000;
 		    nDIN  = 1;
 		    nDOUT = 1;
 		    if ( rd )	// чтение данных с шины
@@ -98,43 +98,43 @@ task bus_cycle(
 			    end
 			else
 			    data_reg = ~nADp[15:0];
-			state = 8'b10000001; // переход к ожиданию окончания RPLY
+			state = 9'b100000001; // переход к ожиданию окончания RPLY
 		    end
 		end
 	    else
-		state[6] = 0;
-	8'b10000001:	// освобождение шины при записи
+		state[7] = 0;
+	9'b100000001:	// освобождение шины при записи
 	    begin
 		data_en = 0;
 		nWTBT   = 1;
 	    end
-	8'b100zzzz0:	// ожидание окончания ответа (1й полутакт)
+	9'b100zzzzz0:	// ожидание окончания ответа (1й полутакт)
 	    if ( nRPLYp )
-		state[5] = 1;
-	8'b101zzzz1:	// ожидание окончания ответа (2й полутакт)
+		state[6] = 1;
+	9'b101zzzzz1:	// ожидание окончания ответа (2й полутакт)
 	    if ( nRPLYp )
 		begin
-		    state[6] = 1;
-		    state[5:0] = 0;
+		    state[7] = 1;
+		    state[6:0] = 0;
 		    ctrl_en = 0;
 		end
 	    else
-		state[5] = 0;
-	8'b11000010:	// снятие nBSY и nSYNC
+		state[6] = 0;
+	9'b110000010:	// снятие nBSY и nSYNC
 	    begin
 		nBSY  = 1'bz;
 		nSYNC = 1;
 	    end
-	8'b11000100:	// конец транзакции
+	9'b110000100:	// конец транзакции
 	    begin
 		nSYNC = 1'bz;
 		run = 0;
 	    end
 	endcase
-	if ( ~state[7] )
-	    ++state[5:0];
+	if ( ~state[8] )
+	    ++state[6:0];
 	else
-	    ++state[4:0];
+	    ++state[5:0];
     end
 endtask
 
