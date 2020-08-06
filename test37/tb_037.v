@@ -70,7 +70,7 @@ end
 // IRQ2 selector (from HSYNC & VSYNC)
 //
 assign nIRQ2 = ~d3;
-assign #5 c28 = ~(d28 | nVSYNC);
+assign c28 = ~(d28 | nVSYNC);
 initial d28 = 1'b0;
 
 always @(negedge c28 or posedge (WTI & CLK))
