@@ -5,8 +5,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "Universal AY for BK0010/11M"
-Date ""
-Rev "0.1"
+Date "2021-04-09"
+Rev "0.2"
 Comp "stanislav.maslovski@gmail.com"
 Comment1 "Stanislav Maslovski"
 Comment2 ""
@@ -725,19 +725,6 @@ Text Label 8200 1300 0    50   ~ 0
 R
 Text Label 8000 1300 0    50   ~ 0
 L
-$Comp
-L Diode:BAT54J D1
-U 1 1 5F97ADA7
-P 4500 3500
-F 0 "D1" H 4500 3717 50  0000 C CNN
-F 1 "BAT54J" H 4500 3626 50  0000 C CNN
-F 2 "Diode_SMD:D_SOD-323_HandSoldering" H 4500 3500 50  0001 C CNN
-F 3 "~" H 4500 3500 50  0001 C CNN
-	1    4500 3500
-	1    0    0    -1  
-$EndComp
-Wire Wire Line
-	4650 3500 4700 3500
 Entry Wire Line
 	1400 3200 1500 3300
 Wire Wire Line
@@ -746,8 +733,6 @@ Wire Wire Line
 	1500 3000 4100 3000
 Wire Wire Line
 	4100 3000 4100 3500
-Wire Wire Line
-	4100 3500 4350 3500
 $Comp
 L Device:C C3
 U 1 1 5F9B2C91
@@ -770,9 +755,6 @@ F 3 "" H 4700 4850 50  0001 C CNN
 	1    4700 4850
 	1    0    0    -1  
 $EndComp
-Connection ~ 4700 3500
-Wire Wire Line
-	4700 3500 4800 3500
 $Comp
 L Switch:SW_Push SW1
 U 1 1 5F9C514E
@@ -785,12 +767,9 @@ F 3 "~" H 4300 4700 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 Wire Wire Line
-	4700 3500 4700 4200
-Wire Wire Line
 	4300 4300 4300 4200
 Wire Wire Line
-	4300 4200 4700 4200
-Connection ~ 4700 4200
+	4300 4200 4500 4200
 Wire Wire Line
 	4700 4200 4700 4350
 Wire Wire Line
@@ -981,6 +960,30 @@ Wire Wire Line
 	8400 2100 8400 2050
 Wire Wire Line
 	8200 2100 8400 2100
+Wire Wire Line
+	8400 2150 8400 2400
+$Comp
+L Diode:BAT54A D1
+U 1 1 6070E392
+P 4500 3800
+F 0 "D1" V 4454 3888 50  0000 L CNN
+F 1 "BAT54A" V 4545 3888 50  0000 L CNN
+F 2 "Package_TO_SOT_SMD:SOT-23" H 4575 3925 50  0001 L CNN
+F 3 "http://www.diodes.com/_files/datasheets/ds11005.pdf" H 4380 3800 50  0001 C CNN
+	1    4500 3800
+	0    -1   1    0   
+$EndComp
+Wire Wire Line
+	4100 3500 4500 3500
+Wire Wire Line
+	4500 4100 4500 4200
+Connection ~ 4500 4200
+Wire Wire Line
+	4500 4200 4700 4200
+Wire Wire Line
+	4700 3800 4700 3500
+Wire Wire Line
+	4700 3500 4800 3500
 Wire Bus Line
 	4400 1100 8100 1100
 Wire Bus Line
@@ -991,6 +994,4 @@ Wire Bus Line
 	4400 1100 4400 2500
 Wire Bus Line
 	1400 1100 1400 3200
-Wire Wire Line
-	8400 2150 8400 2400
 $EndSCHEMATC
