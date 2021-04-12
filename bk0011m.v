@@ -58,7 +58,7 @@ cpu_emulator #(.dT(cycle)) CPU1 (
 assign DOUT = ~nDOUT; // D1, выв. 4
 
 // формирователь строба записи в выходной регистр УП
-parameter RC_delay = 200; // время заряда конденсатора RC цепочки, нс
+parameter RC_delay = 55; // время заряда конденсатора RC цепочки до порога переключения, нс
 wire #(0, RC_delay) ndout_delayed = nDOUT;
 assign STROBE = ~(nSEL2 | ndout_delayed); // D30, выв. 1
 

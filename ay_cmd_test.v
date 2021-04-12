@@ -61,6 +61,16 @@ cmd_ay_stas2 AY2 (
 wire wrbt = ~iwrbt;
 wire sel = ~isel2;
 
+`ifdef GTKWAVE_DUMP
+initial
+    begin
+	$dumpfile("ay_cmd_test.vcd");
+	$dumpvars(0,ay_cmd_test);
+	wait(simulation_end);
+	$finish;
+    end
+
+`else
 initial
     begin
     	$timeformat(3, 2, "us", 7);
@@ -79,5 +89,6 @@ initial
 	$display("'--------'----------------------------'-----------------'-----------------'-----------------'");
 	$finish;
     end
+`endif
 
 endmodule
