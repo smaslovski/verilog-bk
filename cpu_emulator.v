@@ -205,12 +205,7 @@ always @(CLKp)
 
 integer mcd;
 
-`ifdef GTKWAVE_DUMP
-initial begin
-	$dumpfile("cpu_emulator.vcd");
-	$dumpvars(0,cpu_emulator);
-end
-`else
+`ifndef GTKWAVE_DUMP
 initial begin
 	mcd = $fopen("cpu_bus.log");
 	$fdisplay(mcd, "time\tCLKp\tnBSYp\tnADp\t\t\tnSYNCp\tnWTBTp\tnDINp\tnDOUTp\tnRPLYp\tnSEL1p\tnSEL2p\tstate\taddr\tdata");

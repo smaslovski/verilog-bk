@@ -64,7 +64,7 @@ wire sel = ~isel2;
 `ifdef GTKWAVE_DUMP
 initial
     begin
-	$dumpfile("ay_cmd_test.vcd");
+	$dumpfile("cpu_emulator.vcd");
 	$dumpvars(0,ay_cmd_test);
 	wait(simulation_end);
 	$finish;
