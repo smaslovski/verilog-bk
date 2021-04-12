@@ -20,7 +20,7 @@ tri1 [15:0] nAD;
 tri1 nSYNC, nWTBT, nDIN, nDOUT;
 wire nBSY, nRPLY, nSEL1, nSEL2;
 
-assign XT5_out_pin = UP_out_reg;
+assign #(40) XT5_out_pin = UP_out_reg; // задержка распространения ИР22 40 нс
 assign nWRTBT = nWTBT;
 
 // тактовый генератор
