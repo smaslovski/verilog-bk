@@ -55,12 +55,16 @@ cpu_emulator #(.dT(cycle)) CPU1 (
 
 // комбинационная логика на плате БК0011М
 
-assign DOUT = ~nDOUT; // D1, выв. 4
+parameter ln1_delay = 15; // задержка К555ЛН1
+parameter la3_delay = 15; // задержка К555ЛА3
+parameter le1_delay = 15; // задержка К555ЛЕ1
+
+assign #(ln1_delay) DOUT = ~nDOUT; // D1, выв. 4
 
 // формирователь строба записи в выходной регистр УП
 parameter RC_delay = 55; // время заряда конденсатора RC цепочки до порога переключения, нс
 wire #(0, RC_delay) ndout_delayed = nDOUT;
-assign STROBE = ~(nSEL2 | ndout_delayed); // D30, выв. 1
+assign #(le1_delay) STROBE = ~(nSEL2 | ndout_delayed); // D30, выв. 1
 
 // сигнал выборки входного регистра УП
 wire nE0 = nDIN | nSEL2;

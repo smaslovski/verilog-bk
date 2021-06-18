@@ -5,14 +5,14 @@ module bk_ay_stas2(strobe, iwrbt, dout, bc1, bc2, bdir);
 input strobe, iwrbt, dout;
 output bc1, bc2, bdir;
 
-parameter ln1_delay = 20; // задержка 555ЛН1
-parameter li7_delay = 20; // задержка ЛИ7
+parameter ln1_delay = 15; // задержка 555ЛН1
+parameter li1_delay = 20; // задержка 555ЛИ1
 
 assign bdir = 1;
 wire #(ln1_delay) t1 = ~iwrbt;
-wire #(li7_delay) t2 = strobe & dout;
+wire #(li1_delay) t2 = strobe & dout;
 assign #(ln1_delay) bc1 = ~t2;
-assign #(li7_delay) bc2 = t1 & t2;
+assign #(li1_delay) bc2 = t1 & t2;
 
 endmodule
 
