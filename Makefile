@@ -1,4 +1,4 @@
-MODULES = ay_cmd_test.v bk0011m.v cmd_ay_orig.v cmd_ay_stas1.v cmd_ay_stas2.v cpu_emulator.v
+MODULES = ay_cmd_test.v bk0011m.v cmd_ay_orig.v cmd_ay_stas1.v cmd_ay_stas2.v cmd_ay_stas3.v cpu_emulator.v
 PROGRAM = ay_cmd_test
 VERILOG = iverilog -Wall
 LOGS = cpu_bus.log
